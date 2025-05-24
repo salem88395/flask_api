@@ -1,9 +1,13 @@
-import os
 from flask import Flask, request, jsonify
 import pyodbc
+import os
 
 app = Flask(__name__)
+
+# ✅ هذا هو المسار الرئيسي ليمنع خطأ 404
 @app.route('/')
+def home():
+    return "Server is running!"
 
 # إعداد الاتصال بقاعدة البيانات
 def get_db_connection():
@@ -18,7 +22,6 @@ def get_db_connection():
         "Connection Timeout=30;"
     )
     return conn
-
 # مسار لإضافة بيانات جديدة
 @app.route('/add_data', methods=['POST'])
 def add_data():
