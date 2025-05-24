@@ -24,20 +24,26 @@ def get_db_connection():
 @app.route('/add_data', methods=['POST'])
 def add_data():
     data = request.get_json()
-    required_fields = ['num_cust', 'date', 'class',  'statmen', 'num_address', 'target', 'code_op']
-    for field in required_fields:
-        if field not in data:
-            return jsonify({"message": f"Missing required data: {field}!"}), 400
+    required_fields = ['num_cust', 'date', 'class', 'statmen', 'num_address', 'target', 'code_op']
+    missing_fields = [field for field in required_fields if field not in data]
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO feild (num_cust, date, class, statmen, num_address, target, code_op)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (data['num_cust'], data['date'], data['class'], data['statmen'],
-          data['num_address'], data['target'], data['code_op']))
-    conn.commit()
-    conn.close()
+    if missing_fields:
+        return jsonify({"message": f"Missing required data: {', '.join(missing_fields)}"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO feild (num_cust, date, class, statmen, num_address, target, code_op)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (data['num_cust'], data['date'], data['class'], data['statmen'],
+              data['num_address'], data['target'], data['code_op']))
+        conn.commit()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
     return jsonify({"message": "Data added successfully!"}), 200
 
@@ -47,12 +53,16 @@ def login():
     if 'user' not in data or 'pass' not in data:
         return jsonify({"message": "Missing required data!"}), 400
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT name, password FROM enter WHERE name=? AND password=?",
-                   (data['user'], data['pass']))
-    result = cursor.fetchone()
-    conn.close()
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM enter WHERE name=? AND password=?", (data['user'], data['pass']))
+        result = cursor.fetchone()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
     if result:
         return jsonify({"message": "Login successful!"}), 200
@@ -69,11 +79,14 @@ def get_data():
             FROM guld
         """)
         rows = cursor.fetchall()
-        conn.close()
-        data = [list(row) for row in rows]
-        return jsonify(data), 200
+        data = [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+    return jsonify(data), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
