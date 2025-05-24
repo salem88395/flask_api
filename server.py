@@ -1,17 +1,18 @@
-
+import os
 from flask import Flask, request, jsonify
 import pyodbc
 
 app = Flask(__name__)
+@app.route('/')
 
 # إعداد الاتصال بقاعدة البيانات
 def get_db_connection():
     conn = pyodbc.connect(
         "DRIVER={ODBC Driver 17 for SQL Server};"
-        "SERVER=myserver-int123.database.windows.net;"
-        "DATABASE=Intelligence_cloud;"
-        "UID=osk;"
-        "PWD=int05420083@;"
+        f"SERVER={os.environ.get('SERVER')};"
+        f"DATABASE={os.environ.get('DATABASE')};"
+        f"UID={os.environ.get('UID')};"
+        f"PWD={os.environ.get('PWD')};"
         "Encrypt=yes;"
         "TrustServerCertificate=no;"
         "Connection Timeout=30;"
